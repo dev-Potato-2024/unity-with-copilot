@@ -47,65 +47,65 @@ public class AISphere : MonoBehaviour
 
     void UpdateMesh()
     {
-        if (resolution < 2)
-            resolution = 2;
+        resolution = Mathf.Max(2, resolution);
+        radius = Mathf.Max(0.001f, radius);
 
         if (generatedMesh == null)
         {
             generatedMesh = new Mesh();
-            generatedMesh.name = "CubeSphere";
+            generatedMesh.name = "LatLongSphere";
         }
         else
         {
             generatedMesh.Clear();
         }
 
-        var vertexIndexByGrid = new Dictionary<Vector3Int, int>();
-        var vertices = new List<Vector3>();
-        var normals = new List<Vector3>();
-        var triangles = new List<int>();
+        int longitudeSegments = resolution;
+        int latitudeSegments = resolution;
+        int vertexCount = (longitudeSegments + 1) * (latitudeSegments + 1);
 
-        var uvs = new List<Vector2>();
+        var vertices = new List<Vector3>(vertexCount);
+        var normals = new List<Vector3>(vertexCount);
+        var uvs = new List<Vector2>(vertexCount);
+        var triangles = new List<int>(longitudeSegments * latitudeSegments * 6);
 
-        for (int face = 0; face < 6; face++)
+        for (int iy = 0; iy <= latitudeSegments; iy++)
         {
-            for (int iy = 0; iy < resolution; iy++)
+            float v = (float)iy / latitudeSegments;
+            float phi = Mathf.PI * v;
+            float cosPhi = Mathf.Cos(phi);
+            float sinPhi = Mathf.Sin(phi);
+
+            for (int ix = 0; ix <= longitudeSegments; ix++)
             {
-                for (int ix = 0; ix < resolution; ix++)
-                {
-                    Vector3Int grid = GetGridCoords(face, ix, iy, resolution);
-                    if (vertexIndexByGrid.ContainsKey(grid))
-                        continue;
+                float u = (float)ix / longitudeSegments;
+                float theta = 2f * Mathf.PI * u;
+                float cosTheta = Mathf.Cos(theta);
+                float sinTheta = Mathf.Sin(theta);
 
-                    Vector3 cubePoint = GridToCubePoint(grid, resolution);
-                    Vector3 spherePoint = cubePoint.normalized * radius;
-                    Vector3 sphereNormal = cubePoint.normalized;
-
-                    int index = vertices.Count;
-                    vertexIndexByGrid[grid] = index;
-                    vertices.Add(spherePoint);
-                    normals.Add(sphereNormal);
-                    uvs.Add(GetLatLongUV(sphereNormal));
-                }
+                Vector3 normal = new Vector3(sinPhi * cosTheta, cosPhi, sinPhi * sinTheta);
+                vertices.Add(normal * radius);
+                normals.Add(normal);
+                uvs.Add(new Vector2(u, 1f - v));
             }
         }
 
-        for (int face = 0; face < 6; face++)
+        for (int iy = 0; iy < latitudeSegments; iy++)
         {
-            Vector3 faceDir = GetFaceDirection(face);
-
-            for (int iy = 0; iy < resolution - 1; iy++)
+            for (int ix = 0; ix < longitudeSegments; ix++)
             {
-                for (int ix = 0; ix < resolution - 1; ix++)
-                {
-                    int i00 = vertexIndexByGrid[GetGridCoords(face, ix, iy, resolution)];
-                    int i10 = vertexIndexByGrid[GetGridCoords(face, ix + 1, iy, resolution)];
-                    int i01 = vertexIndexByGrid[GetGridCoords(face, ix, iy + 1, resolution)];
-                    int i11 = vertexIndexByGrid[GetGridCoords(face, ix + 1, iy + 1, resolution)];
+                int i0 = iy * (longitudeSegments + 1) + ix;
+                int i1 = i0 + 1;
+                int i2 = i0 + longitudeSegments + 1;
+                int i3 = i2 + 1;
 
-                    AddTriangle(triangles, vertices, i00, i01, i10, faceDir);
-                    AddTriangle(triangles, vertices, i10, i01, i11, faceDir);
-                }
+                triangles.Add(i0);
+                triangles.Add(i2);
+                triangles.Add(i1);
+
+                triangles.Add(i1);
+                triangles.Add(i2);
+                triangles.Add(i3);
             }
         }
 
