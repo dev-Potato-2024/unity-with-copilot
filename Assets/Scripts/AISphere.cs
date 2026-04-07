@@ -54,14 +54,10 @@ public class AISphere : MonoBehaviour
         radius = Mathf.Max(0.001f, radius);
         chunkColumns = Mathf.Max(1, chunkColumns);
         chunkRows = Mathf.Max(1, chunkRows);
-        UpdateMesh();
     }
 
     void Update()
     {
-        if (chunkColumns != lastChunkColumns || chunkRows != lastChunkRows)
-            UpdateMesh();
-
         if (enableRotation && Application.isPlaying)
             transform.Rotate(Vector3.up, spinRateDegreesPerSecond * Time.deltaTime, Space.Self);
     }
