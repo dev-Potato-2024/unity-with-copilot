@@ -1,5 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 [ExecuteAlways]
 [RequireComponent(typeof(MeshFilter))]
@@ -17,13 +20,32 @@ public class AISphere : MonoBehaviour
     [Range(1, 20)]
     public int chunkRows = 20;
 
+    public bool enableRotation = false;
+
+    [Range(-360f, 360f)]
+    public float spinRateDegreesPerSecond = 15f;
+
     private int lastChunkColumns;
     private int lastChunkRows;
     private const string ChunkPrefix = "AISphereChunk_";
+#if UNITY_EDITOR
+    private double lastEditorUpdateTime;
+#endif
 
     void OnEnable()
     {
         UpdateMesh();
+#if UNITY_EDITOR
+        lastEditorUpdateTime = EditorApplication.timeSinceStartup;
+        EditorApplication.update += OnEditorUpdate;
+#endif
+    }
+
+    void OnDisable()
+    {
+#if UNITY_EDITOR
+        EditorApplication.update -= OnEditorUpdate;
+#endif
     }
 
     void OnValidate()
@@ -39,7 +61,31 @@ public class AISphere : MonoBehaviour
     {
         if (chunkColumns != lastChunkColumns || chunkRows != lastChunkRows)
             UpdateMesh();
+
+        if (enableRotation && Application.isPlaying)
+            transform.Rotate(Vector3.up, spinRateDegreesPerSecond * Time.deltaTime, Space.Self);
     }
+
+#if UNITY_EDITOR
+    private void OnEditorUpdate()
+    {
+        if (Application.isPlaying || !enableRotation)
+        {
+            lastEditorUpdateTime = EditorApplication.timeSinceStartup;
+            return;
+        }
+
+        double now = EditorApplication.timeSinceStartup;
+        float deltaTime = (float)(now - lastEditorUpdateTime);
+        lastEditorUpdateTime = now;
+
+        if (deltaTime <= 0f)
+            return;
+
+        transform.Rotate(Vector3.up, spinRateDegreesPerSecond * deltaTime, Space.Self);
+        EditorApplication.QueuePlayerLoopUpdate();
+    }
+#endif
 
     void UpdateMesh()
     {
