@@ -60,23 +60,7 @@ public class FlightCam : MonoBehaviour
         if (Application.isPlaying)
         {
             ApplyOrbit(Time.deltaTime);
-            ApplyLook();
         }
-    }
-
-    private void ApplyLook()
-    {
-        float horizontal = Input.GetAxisRaw("Horizontal");
-        float vertical = Input.GetAxisRaw("Vertical");
-
-        float targetYaw = horizontal * maxYawDegrees;
-        float targetPitch = vertical * maxPitchDegrees;
-
-        currentYaw = Mathf.SmoothDamp(currentYaw, targetYaw, ref yawVelocity, smoothTime);
-        currentPitch = Mathf.SmoothDamp(currentPitch, targetPitch, ref pitchVelocity, smoothTime);
-
-        Quaternion lookOffset = Quaternion.Euler(-currentPitch, currentYaw, 0f);
-        transform.localRotation = centerLocalRotation * lookOffset;
     }
 
     private void ApplyOrbit(float deltaTime)
